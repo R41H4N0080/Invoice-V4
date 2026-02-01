@@ -100,6 +100,14 @@
             <label>Paid Amount</label>
             <input type="number" id="paidInput" value="0" oninput="updatePreview()">
           </div>
+          <div class="form-group">
+            <label>Currency Symbol</label>
+            <input type="text" id="currencyInput" value="৳" oninput="updatePreview()">
+          </div>
+          <div class="form-group">
+            <label>Note to Client</label>
+            <textarea id="noteInput" rows="2" placeholder="e.g. Please pay within 7 days" oninput="updatePreview()"></textarea>
+          </div>
         </div>
       </div>
 
@@ -108,6 +116,9 @@
         <div class="controls">
           <button class="btn-primary" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
           <button class="btn-secondary" onclick="downloadImage()"><i class="fas fa-image"></i> Download Image</button>
+          <button class="btn-add" style="width: auto; padding: 12px 20px; border: 1px solid var(--border); background: white;" onclick="updatePreview()">
+            <i class="fas fa-sync-alt"></i> Refresh Preview
+          </button>
         </div>
 
         <div class="preview-wrapper">
@@ -163,6 +174,10 @@
             </div>
 
             <div id="paidStamp" class="paid-stamp" style="display: none;">PAID</div>
+
+            <div id="prevNoteContainer" style="margin-top: 20px; font-size: 0.85rem; color: var(--text-light); border-top: 1px solid var(--border); padding-top: 10px; display: none;">
+              <strong>Note:</strong> <span id="prevNote"></span>
+            </div>
 
             <div class="thank-you">Thank you for your business!</div>
           </div>
@@ -244,6 +259,7 @@ function addItem() {
 
 function updatePreview() {
   const isSMM = document.getElementById('businessType').value === 'smm';
+  const currency = document.getElementById('currencyInput').value || '৳';
 
   // Simple fields
   document.getElementById('prevSenderName').innerText = document.getElementById('senderName').value.toUpperCase() || 'YOUR COMPANY';
@@ -264,8 +280,8 @@ function updatePreview() {
     const startCount = row.querySelector('.item-start-count').value || '0';
     const orderId = row.querySelector('.item-order-id').value || '-';
     
-    // SMM logic: if quantity is 1000, price is as entered. Otherwise price per 1000.
-    const total = isSMM ? (qty * price / 1000) : (qty * price);
+    // SMM logic: Total = Price (Price input is for the whole quantity)
+    let total = isSMM ? price : (qty * price);
     subtotal += total;
 
     const tr = document.createElement('tr');
@@ -275,15 +291,15 @@ function updatePreview() {
           <td>${orderId}</td>
           <td class="text-right">${startCount}</td>
           <td class="text-right">${qty}</td>
-          <td class="text-right">৳ ${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-          <td class="text-right">৳ ${total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+          <td class="text-right">${currency} ${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+          <td class="text-right">${currency} ${total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
         `;
     } else {
         tr.innerHTML = `
           <td>${desc}</td>
           <td class="text-right">${qty}</td>
-          <td class="text-right">৳ ${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-          <td class="text-right">৳ ${total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+          <td class="text-right">${currency} ${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+          <td class="text-right">${currency} ${total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
         `;
     }
     previewItems.appendChild(tr);
@@ -300,13 +316,23 @@ function updatePreview() {
   const grandTotal = subtotal + taxAmount + vatAmount - discount;
   const due = Math.max(0, grandTotal - paid);
 
-  document.getElementById('prevSubtotal').innerText = `৳ ${subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  document.getElementById('prevTax').innerText = `৳ ${taxAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  document.getElementById('prevVat').innerText = `৳ ${vatAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  document.getElementById('prevDiscount').innerText = `৳ ${discount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  document.getElementById('prevTotal').innerText = `৳ ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  document.getElementById('prevPaid').innerText = `৳ ${paid.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-  document.getElementById('prevDue').innerText = `৳ ${due.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  document.getElementById('prevSubtotal').innerText = `${currency} ${subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  document.getElementById('prevTax').innerText = `${currency} ${taxAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  document.getElementById('prevVat').innerText = `${currency} ${vatAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  document.getElementById('prevDiscount').innerText = `${currency} ${discount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  document.getElementById('prevTotal').innerText = `${currency} ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  document.getElementById('prevPaid').innerText = `${currency} ${paid.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+  document.getElementById('prevDue').innerText = `${currency} ${due.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+  // Note Preview
+  const note = document.getElementById('noteInput').value;
+  const noteContainer = document.getElementById('prevNoteContainer');
+  if (note) {
+    noteContainer.style.display = 'block';
+    document.getElementById('prevNote').innerText = note;
+  } else {
+    noteContainer.style.display = 'none';
+  }
 
   // Target Link Preview
   const targetLink = document.getElementById('targetLink').value;
